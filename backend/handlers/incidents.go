@@ -10,24 +10,26 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// helper: write JSON response
 func writeJSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(data)
 }
 
-// helper: write error response
 func writeError(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, map[string]string{"error": msg})
 }
 
-// GET /api/incidents — fetch all incidents, newest first
+// GET /api/incidents — all incidents, newest first, with owner username joined
 func GetIncidents(w http.ResponseWriter, r *http.Request) {
 	rows, err := database.DB.Query(`
-		SELECT id, title, description, category, status, created_at, updated_at
-		FROM incidents
-		ORDER BY created_at DESC
+		SELECT i.id, i.title, i.description, i.category, i.status,
+		       COALESCE(i.user_id, 0),
+		       COALESCE(u.username, 'Unknown'),
+		       i.created_at, i.updated_at
+		FROM incidents i
+		LEFT JOIN users u ON i.user_id = u.id
+		ORDER BY i.created_at DESC
 	`)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Failed to fetch incidents")
@@ -40,35 +42,37 @@ func GetIncidents(w http.ResponseWriter, r *http.Request) {
 		var inc models.Incident
 		if err := rows.Scan(
 			&inc.ID, &inc.Title, &inc.Description,
-			&inc.Category, &inc.Status, &inc.CreatedAt, &inc.UpdatedAt,
+			&inc.Category, &inc.Status,
+			&inc.UserID, &inc.OwnerUsername,
+			&inc.CreatedAt, &inc.UpdatedAt,
 		); err != nil {
-			writeError(w, http.StatusInternalServerError, "Failed to scan incident")
+			writeError(w, http.StatusInternalServerError, "Failed to read incidents")
 			return
 		}
 		incidents = append(incidents, inc)
 	}
-
 	writeJSON(w, http.StatusOK, incidents)
 }
 
-// POST /api/incidents — create a new incident
+// POST /api/incidents — create incident, owned by the authenticated user
 func CreateIncident(w http.ResponseWriter, r *http.Request) {
-	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1 MB limit
+	userID := r.Context().Value(models.UserIDKey).(int64)
+
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	var req models.IncidentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "Invalid request body (max 1MB)")
 		return
 	}
-
 	if msg := req.Validate(); msg != "" {
 		writeError(w, http.StatusBadRequest, msg)
 		return
 	}
 
 	result, err := database.DB.Exec(`
-		INSERT INTO incidents (title, description, category, status)
-		VALUES (?, ?, ?, ?)
-	`, req.Title, req.Description, req.Category, req.Status)
+		INSERT INTO incidents (title, description, category, status, user_id)
+		VALUES (?, ?, ?, ?, ?)
+	`, req.Title, req.Description, req.Category, req.Status, userID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Failed to create incident")
 		return
@@ -77,23 +81,29 @@ func CreateIncident(w http.ResponseWriter, r *http.Request) {
 	id, _ := result.LastInsertId()
 
 	var inc models.Incident
-	err = database.DB.QueryRow(`
-		SELECT id, title, description, category, status, created_at, updated_at
-		FROM incidents WHERE id = ?
+	if err := database.DB.QueryRow(`
+		SELECT i.id, i.title, i.description, i.category, i.status,
+		       COALESCE(i.user_id, 0), COALESCE(u.username, 'Unknown'),
+		       i.created_at, i.updated_at
+		FROM incidents i
+		LEFT JOIN users u ON i.user_id = u.id
+		WHERE i.id = ?
 	`, id).Scan(
 		&inc.ID, &inc.Title, &inc.Description,
-		&inc.Category, &inc.Status, &inc.CreatedAt, &inc.UpdatedAt,
-	)
-	if err != nil {
+		&inc.Category, &inc.Status,
+		&inc.UserID, &inc.OwnerUsername,
+		&inc.CreatedAt, &inc.UpdatedAt,
+	); err != nil {
 		writeError(w, http.StatusInternalServerError, "Failed to retrieve created incident")
 		return
 	}
-
 	writeJSON(w, http.StatusCreated, inc)
 }
 
-// PUT /api/incidents/{id} — update an existing incident
+// PUT /api/incidents/{id} — only the owner can update
 func UpdateIncident(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(models.UserIDKey).(int64)
+
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
@@ -101,51 +111,63 @@ func UpdateIncident(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1 MB limit
+	// Separate 404 from 403 so the client knows the difference
+	var ownerID int64
+	if err := database.DB.QueryRow(
+		`SELECT COALESCE(user_id, 0) FROM incidents WHERE id = ?`, id,
+	).Scan(&ownerID); err != nil {
+		writeError(w, http.StatusNotFound, "Incident not found")
+		return
+	}
+	if ownerID != userID {
+		writeError(w, http.StatusForbidden, "You can only edit your own incidents")
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	var req models.IncidentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "Invalid request body (max 1MB)")
 		return
 	}
-
 	if msg := req.Validate(); msg != "" {
 		writeError(w, http.StatusBadRequest, msg)
 		return
 	}
 
-	result, err := database.DB.Exec(`
+	if _, err := database.DB.Exec(`
 		UPDATE incidents
 		SET title = ?, description = ?, category = ?, status = ?, updated_at = CURRENT_TIMESTAMP
 		WHERE id = ?
-	`, req.Title, req.Description, req.Category, req.Status, id)
-	if err != nil {
+	`, req.Title, req.Description, req.Category, req.Status, id); err != nil {
 		writeError(w, http.StatusInternalServerError, "Failed to update incident")
-		return
-	}
-
-	rowsAffected, _ := result.RowsAffected()
-	if rowsAffected == 0 {
-		writeError(w, http.StatusNotFound, "Incident not found")
 		return
 	}
 
 	var inc models.Incident
 	if err := database.DB.QueryRow(`
-		SELECT id, title, description, category, status, created_at, updated_at
-		FROM incidents WHERE id = ?
+		SELECT i.id, i.title, i.description, i.category, i.status,
+		       COALESCE(i.user_id, 0), COALESCE(u.username, 'Unknown'),
+		       i.created_at, i.updated_at
+		FROM incidents i
+		LEFT JOIN users u ON i.user_id = u.id
+		WHERE i.id = ?
 	`, id).Scan(
 		&inc.ID, &inc.Title, &inc.Description,
-		&inc.Category, &inc.Status, &inc.CreatedAt, &inc.UpdatedAt,
+		&inc.Category, &inc.Status,
+		&inc.UserID, &inc.OwnerUsername,
+		&inc.CreatedAt, &inc.UpdatedAt,
 	); err != nil {
 		writeError(w, http.StatusInternalServerError, "Failed to retrieve updated incident")
 		return
 	}
-
 	writeJSON(w, http.StatusOK, inc)
 }
 
-// DELETE /api/incidents/{id} — delete an incident
+// DELETE /api/incidents/{id} — only the owner can delete
 func DeleteIncident(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(models.UserIDKey).(int64)
+
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
@@ -153,17 +175,21 @@ func DeleteIncident(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := database.DB.Exec(`DELETE FROM incidents WHERE id = ?`, id)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to delete incident")
-		return
-	}
-
-	rowsAffected, _ := result.RowsAffected()
-	if rowsAffected == 0 {
+	var ownerID int64
+	if err := database.DB.QueryRow(
+		`SELECT COALESCE(user_id, 0) FROM incidents WHERE id = ?`, id,
+	).Scan(&ownerID); err != nil {
 		writeError(w, http.StatusNotFound, "Incident not found")
 		return
 	}
+	if ownerID != userID {
+		writeError(w, http.StatusForbidden, "You can only delete your own incidents")
+		return
+	}
 
+	if _, err := database.DB.Exec(`DELETE FROM incidents WHERE id = ?`, id); err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to delete incident")
+		return
+	}
 	writeJSON(w, http.StatusOK, map[string]string{"message": "Incident deleted successfully"})
 }
