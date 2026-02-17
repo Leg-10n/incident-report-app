@@ -18,16 +18,17 @@ const (
 )
 
 type Incident struct {
-	ID          int64     `json:"id"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	Category    Category  `json:"category"`
-	Status      Status    `json:"status"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID            int64     `json:"id"`
+	Title         string    `json:"title"`
+	Description   string    `json:"description"`
+	Category      Category  `json:"category"`
+	Status        Status    `json:"status"`
+	UserID        int64     `json:"user_id"`        // who created it
+	OwnerUsername string    `json:"owner_username"` // joined from users table
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
-// Used for create/update requests — no ID or timestamps from client
 type IncidentRequest struct {
 	Title       string   `json:"title"`
 	Description string   `json:"description"`
