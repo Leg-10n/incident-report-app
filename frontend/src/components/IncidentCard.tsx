@@ -1,29 +1,37 @@
-import { Incident } from '../types/incident'
-import { StatusBadge, CategoryBadge } from './StatusBadge'
-import { Pencil, Trash2, Clock, User } from 'lucide-react'
+import { Incident } from "../types/incident";
+import { StatusBadge, CategoryBadge } from "./StatusBadge";
+import { Pencil, Trash2, Clock, User } from "lucide-react";
 
 interface IncidentCardProps {
-  incident:      Incident
-  currentUserId: number
-  onEdit:        (incident: Incident) => void
-  onDelete:      (id: number) => void
+  incident: Incident;
+  currentUserId: number;
+  onEdit: (incident: Incident) => void;
+  onDelete: (id: number) => void;
 }
 
 function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleString('en-US', {
-    month: 'short', day: 'numeric', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  })
+  return new Date(dateStr).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
-export function IncidentCard({ incident, currentUserId, onEdit, onDelete }: IncidentCardProps) {
-  const isOwner = incident.user_id === currentUserId
+export function IncidentCard({
+  incident,
+  currentUserId,
+  onEdit,
+  onDelete,
+}: IncidentCardProps) {
+  const isOwner = incident.user_id === currentUserId;
 
   const handleDelete = () => {
     if (window.confirm(`Delete "${incident.title}"? This cannot be undone.`)) {
-      onDelete(incident.id)
+      onDelete(incident.id);
     }
-  }
+  };
 
   return (
     <article className="card">
@@ -36,10 +44,18 @@ export function IncidentCard({ incident, currentUserId, onEdit, onDelete }: Inci
         {/* Only render action buttons if this user is the owner */}
         {isOwner && (
           <div className="card-actions">
-            <button className="icon-btn" onClick={() => onEdit(incident)} title="Edit">
+            <button
+              className="icon-btn"
+              onClick={() => onEdit(incident)}
+              title="Edit"
+            >
               <Pencil size={15} />
             </button>
-            <button className="icon-btn icon-btn-danger" onClick={handleDelete} title="Delete">
+            <button
+              className="icon-btn icon-btn-danger"
+              onClick={handleDelete}
+              title="Delete"
+            >
               <Trash2 size={15} />
             </button>
           </div>
@@ -57,5 +73,5 @@ export function IncidentCard({ incident, currentUserId, onEdit, onDelete }: Inci
         <span>{formatDate(incident.created_at)}</span>
       </div>
     </article>
-  )
+  );
 }

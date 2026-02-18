@@ -1,96 +1,99 @@
-import { useState, useEffect, useCallback } from 'react'
-import { Incident, IncidentRequest } from '../types/incident'
+import { useState, useEffect, useCallback } from "react";
+import { Incident, IncidentRequest } from "../types/incident";
 
-const API_BASE = '/api/incidents'
+const API_BASE = "/api/incidents";
 
 export function useIncidents(token: string | null) {
-  const [incidents, setIncidents] = useState<Incident[]>([])
-  const [loading, setLoading]     = useState(true)
-  const [error, setError]         = useState<string | null>(null)
+  const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Helper so we don't repeat the Authorization header everywhere
   const authHeaders = () => ({
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json',
-  })
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+  });
 
   const fetchIncidents = useCallback(async () => {
-    if (!token) return
+    if (!token) return;
     try {
-      setLoading(true)
+      setLoading(true);
       const res = await fetch(API_BASE, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      if (!res.ok) throw new Error('Failed to fetch incidents')
-      const data: Incident[] = await res.json()
-      setIncidents(data)
-      setError(null)
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to fetch incidents");
+      const data: Incident[] = await res.json();
+      setIncidents(data);
+      setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
+      setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [token]) // re-fetch if token changes (e.g. login/logout)
+  }, [token]); // re-fetch if token changes (e.g. login/logout)
 
   useEffect(() => {
-    fetchIncidents()
-  }, [fetchIncidents])
+    fetchIncidents();
+  }, [fetchIncidents]);
 
   const createIncident = async (req: IncidentRequest): Promise<boolean> => {
     try {
       const res = await fetch(API_BASE, {
-        method: 'POST',
+        method: "POST",
         headers: authHeaders(),
         body: JSON.stringify(req),
-      })
+      });
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || 'Failed to create incident')
+        const data = await res.json();
+        throw new Error(data.error || "Failed to create incident");
       }
-      await fetchIncidents()
-      return true
+      await fetchIncidents();
+      return true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
-      return false
+      setError(err instanceof Error ? err.message : "Unknown error");
+      return false;
     }
-  }
+  };
 
-  const updateIncident = async (id: number, req: IncidentRequest): Promise<boolean> => {
+  const updateIncident = async (
+    id: number,
+    req: IncidentRequest,
+  ): Promise<boolean> => {
     try {
       const res = await fetch(`${API_BASE}/${id}`, {
-        method: 'PUT',
+        method: "PUT",
         headers: authHeaders(),
         body: JSON.stringify(req),
-      })
+      });
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || 'Failed to update incident')
+        const data = await res.json();
+        throw new Error(data.error || "Failed to update incident");
       }
-      await fetchIncidents()
-      return true
+      await fetchIncidents();
+      return true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
-      return false
+      setError(err instanceof Error ? err.message : "Unknown error");
+      return false;
     }
-  }
+  };
 
   const deleteIncident = async (id: number): Promise<boolean> => {
     try {
       const res = await fetch(`${API_BASE}/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
-      })
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || 'Failed to delete incident')
+        const data = await res.json();
+        throw new Error(data.error || "Failed to delete incident");
       }
-      setIncidents(prev => prev.filter(inc => inc.id !== id))
-      return true
+      setIncidents((prev) => prev.filter((inc) => inc.id !== id));
+      return true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
-      return false
+      setError(err instanceof Error ? err.message : "Unknown error");
+      return false;
     }
-  }
+  };
 
   return {
     incidents,
@@ -100,5 +103,5 @@ export function useIncidents(token: string | null) {
     updateIncident,
     deleteIncident,
     refetch: fetchIncidents,
-  }
+  };
 }

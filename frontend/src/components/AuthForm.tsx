@@ -1,25 +1,33 @@
-import { useState } from 'react'
-import { AuthFormData } from '../types/auth'
+import { useState } from "react";
+import { AuthFormData } from "../types/auth";
 
 interface AuthFormProps {
-  onLogin:    (form: AuthFormData) => Promise<boolean>
-  onRegister: (form: AuthFormData) => Promise<boolean>
-  error:      string | null
-  loading:    boolean
+  onLogin: (form: AuthFormData) => Promise<boolean>;
+  onRegister: (form: AuthFormData) => Promise<boolean>;
+  error: string | null;
+  loading: boolean;
 }
 
-export function AuthForm({ onLogin, onRegister, error, loading }: AuthFormProps) {
-  const [mode, setMode] = useState<'login' | 'register'>('login')
-  const [form, setForm] = useState<AuthFormData>({ username: '', password: '' })
+export function AuthForm({
+  onLogin,
+  onRegister,
+  error,
+  loading,
+}: AuthFormProps) {
+  const [mode, setMode] = useState<"login" | "register">("login");
+  const [form, setForm] = useState<AuthFormData>({
+    username: "",
+    password: "",
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (mode === 'login') {
-      await onLogin(form)
+    e.preventDefault();
+    if (mode === "login") {
+      await onLogin(form);
     } else {
-      await onRegister(form)
+      await onRegister(form);
     }
-  }
+  };
 
   return (
     <div className="auth-page">
@@ -32,15 +40,15 @@ export function AuthForm({ onLogin, onRegister, error, loading }: AuthFormProps)
 
         <div className="auth-tabs">
           <button
-            className={`auth-tab ${mode === 'login' ? 'active' : ''}`}
-            onClick={() => setMode('login')}
+            className={`auth-tab ${mode === "login" ? "active" : ""}`}
+            onClick={() => setMode("login")}
             type="button"
           >
             Login
           </button>
           <button
-            className={`auth-tab ${mode === 'register' ? 'active' : ''}`}
-            onClick={() => setMode('register')}
+            className={`auth-tab ${mode === "register" ? "active" : ""}`}
+            onClick={() => setMode("register")}
             type="button"
           >
             Register
@@ -56,7 +64,9 @@ export function AuthForm({ onLogin, onRegister, error, loading }: AuthFormProps)
               id="username"
               type="text"
               value={form.username}
-              onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, username: e.target.value }))
+              }
               placeholder="username or email"
               autoComplete="username"
               minLength={3}
@@ -70,31 +80,43 @@ export function AuthForm({ onLogin, onRegister, error, loading }: AuthFormProps)
               id="password"
               type="password"
               value={form.password}
-              onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, password: e.target.value }))
+              }
               placeholder="••••••••"
-              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+              autoComplete={
+                mode === "login" ? "current-password" : "new-password"
+              }
               minLength={6}
             />
           </div>
 
-          <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
+          <button
+            type="submit"
+            className="btn btn-primary btn-full"
+            disabled={loading}
+          >
             {loading
-              ? 'Please wait...'
-              : mode === 'login' ? 'Login' : 'Create Account'}
+              ? "Please wait..."
+              : mode === "login"
+                ? "Login"
+                : "Create Account"}
           </button>
         </form>
 
         <p className="auth-switch">
-          {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
+          {mode === "login"
+            ? "Don't have an account? "
+            : "Already have an account? "}
           <button
             className="auth-switch-btn"
             type="button"
-            onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
+            onClick={() => setMode(mode === "login" ? "register" : "login")}
           >
-            {mode === 'login' ? 'Register' : 'Login'}
+            {mode === "login" ? "Register" : "Login"}
           </button>
         </p>
       </div>
     </div>
-  )
+  );
 }

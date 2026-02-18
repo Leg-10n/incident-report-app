@@ -1,14 +1,14 @@
 export interface AuthUser {
-  id: number
-  username: string
+  id: number;
+  username: string;
 }
 
 export interface AuthResponse {
-  token: string
-  user: AuthUser
+  token: string;
+  user: AuthUser;
 }
 
 export interface AuthFormData {
-  username: string
-  password: string
+  username: string;
+  password: string;
 }

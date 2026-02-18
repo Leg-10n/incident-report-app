@@ -1,18 +1,34 @@
-import { useState } from 'react'
-import { useIncidents } from './hooks/useIncidents'
-import { useAuth }      from './hooks/useAuth'
-import { IncidentList } from './components/IncidentList'
-import { IncidentForm } from './components/IncidentForm'
-import { AuthForm }     from './components/AuthForm'
-import { Incident, IncidentRequest } from './types/incident'
-import { Plus, RefreshCw, AlertTriangle, LogOut } from 'lucide-react'
+import { useState } from "react";
+import { useIncidents } from "./hooks/useIncidents";
+import { useAuth } from "./hooks/useAuth";
+import { IncidentList } from "./components/IncidentList";
+import { IncidentForm } from "./components/IncidentForm";
+import { AuthForm } from "./components/AuthForm";
+import { Incident, IncidentRequest } from "./types/incident";
+import { Plus, RefreshCw, AlertTriangle, LogOut } from "lucide-react";
 
 export default function App() {
-  const { token, user, error: authError, loading: authLoading, login, register, logout } = useAuth()
-  const { incidents, loading, error, createIncident, updateIncident, deleteIncident, refetch } = useIncidents(token)
+  const {
+    token,
+    user,
+    error: authError,
+    loading: authLoading,
+    login,
+    register,
+    logout,
+  } = useAuth();
+  const {
+    incidents,
+    loading,
+    error,
+    createIncident,
+    updateIncident,
+    deleteIncident,
+    refetch,
+  } = useIncidents(token);
 
-  const [showForm,        setShowForm]        = useState(false)
-  const [editingIncident, setEditingIncident] = useState<Incident | null>(null)
+  const [showForm, setShowForm] = useState(false);
+  const [editingIncident, setEditingIncident] = useState<Incident | null>(null);
 
   // Auth gate — show login/register screen if no valid session
   if (!token || !user) {
@@ -23,23 +39,23 @@ export default function App() {
         error={authError}
         loading={authLoading}
       />
-    )
+    );
   }
 
   const handleEdit = (incident: Incident) => {
-    setEditingIncident(incident)
-    setShowForm(true)
-  }
+    setEditingIncident(incident);
+    setShowForm(true);
+  };
 
   const handleUpdate = async (data: IncidentRequest) => {
-    if (!editingIncident) return false
-    return updateIncident(editingIncident.id, data)
-  }
+    if (!editingIncident) return false;
+    return updateIncident(editingIncident.id, data);
+  };
 
   const handleCloseForm = () => {
-    setShowForm(false)
-    setEditingIncident(null)
-  }
+    setShowForm(false);
+    setEditingIncident(null);
+  };
 
   return (
     <div className="app">
@@ -59,7 +75,10 @@ export default function App() {
             </button>
             <button
               className="btn btn-primary"
-              onClick={() => { setEditingIncident(null); setShowForm(true) }}
+              onClick={() => {
+                setEditingIncident(null);
+                setShowForm(true);
+              }}
             >
               <Plus size={16} />
               New Report
@@ -102,5 +121,5 @@ export default function App() {
         />
       )}
     </div>
-  )
+  );
 }

@@ -1,24 +1,28 @@
-import { useState, useEffect } from 'react'
-import { Incident, IncidentRequest, Category, Status } from '../types/incident'
-import { X } from 'lucide-react'
+import { useState, useEffect } from "react";
+import { Incident, IncidentRequest, Category, Status } from "../types/incident";
+import { X } from "lucide-react";
 
 interface IncidentFormProps {
-  incident?: Incident | null
-  onSubmit: (data: IncidentRequest) => Promise<boolean>
-  onClose: () => void
+  incident?: Incident | null;
+  onSubmit: (data: IncidentRequest) => Promise<boolean>;
+  onClose: () => void;
 }
 
 const defaultForm: IncidentRequest = {
-  title: '',
-  description: '',
-  category: 'Safety',
-  status: 'Open',
-}
+  title: "",
+  description: "",
+  category: "Safety",
+  status: "Open",
+};
 
-export function IncidentForm({ incident, onSubmit, onClose }: IncidentFormProps) {
-  const [form, setForm] = useState<IncidentRequest>(defaultForm)
-  const [submitting, setSubmitting] = useState(false)
-  const [fieldError, setFieldError] = useState<string | null>(null)
+export function IncidentForm({
+  incident,
+  onSubmit,
+  onClose,
+}: IncidentFormProps) {
+  const [form, setForm] = useState<IncidentRequest>(defaultForm);
+  const [submitting, setSubmitting] = useState(false);
+  const [fieldError, setFieldError] = useState<string | null>(null);
 
   useEffect(() => {
     if (incident) {
@@ -27,33 +31,35 @@ export function IncidentForm({ incident, onSubmit, onClose }: IncidentFormProps)
         description: incident.description,
         category: incident.category,
         status: incident.status,
-      })
+      });
     } else {
-      setForm(defaultForm)
+      setForm(defaultForm);
     }
-  }, [incident])
+  }, [incident]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (!form.title.trim() || !form.description.trim()) {
-      setFieldError('Title and description are required.')
-      return
+      setFieldError("Title and description are required.");
+      return;
     }
-    setFieldError(null)
-    setSubmitting(true)
-    const success = await onSubmit(form)
-    setSubmitting(false)
-    if (success) onClose()
-  }
+    setFieldError(null);
+    setSubmitting(true);
+    const success = await onSubmit(form);
+    setSubmitting(false);
+    if (success) onClose();
+  };
 
-  const isEdit = Boolean(incident)
+  const isEdit = Boolean(incident);
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>{isEdit ? 'Edit Incident' : 'New Incident Report'}</h2>
-          <button className="icon-btn" onClick={onClose}><X size={20} /></button>
+          <h2>{isEdit ? "Edit Incident" : "New Incident Report"}</h2>
+          <button className="icon-btn" onClick={onClose}>
+            <X size={20} />
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="form">
@@ -65,7 +71,9 @@ export function IncidentForm({ incident, onSubmit, onClose }: IncidentFormProps)
               id="title"
               type="text"
               value={form.title}
-              onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, title: e.target.value }))
+              }
               placeholder="Brief incident title..."
               maxLength={150}
             />
@@ -76,7 +84,9 @@ export function IncidentForm({ incident, onSubmit, onClose }: IncidentFormProps)
             <textarea
               id="description"
               value={form.description}
-              onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, description: e.target.value }))
+              }
               placeholder="Describe the incident in detail..."
               rows={4}
             />
@@ -88,7 +98,12 @@ export function IncidentForm({ incident, onSubmit, onClose }: IncidentFormProps)
               <select
                 id="category"
                 value={form.category}
-                onChange={e => setForm(f => ({ ...f, category: e.target.value as Category }))}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    category: e.target.value as Category,
+                  }))
+                }
               >
                 <option value="Safety">Safety</option>
                 <option value="Maintenance">Maintenance</option>
@@ -100,7 +115,9 @@ export function IncidentForm({ incident, onSubmit, onClose }: IncidentFormProps)
               <select
                 id="status"
                 value={form.status}
-                onChange={e => setForm(f => ({ ...f, status: e.target.value as Status }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, status: e.target.value as Status }))
+                }
               >
                 <option value="Open">Open</option>
                 <option value="In Progress">In Progress</option>
@@ -113,12 +130,20 @@ export function IncidentForm({ incident, onSubmit, onClose }: IncidentFormProps)
             <button type="button" className="btn btn-ghost" onClick={onClose}>
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary" disabled={submitting}>
-              {submitting ? 'Saving...' : isEdit ? 'Save Changes' : 'Create Report'}
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={submitting}
+            >
+              {submitting
+                ? "Saving..."
+                : isEdit
+                  ? "Save Changes"
+                  : "Create Report"}
             </button>
           </div>
         </form>
       </div>
     </div>
-  )
+  );
 }
