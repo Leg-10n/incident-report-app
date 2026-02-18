@@ -57,7 +57,7 @@ export function AuthForm({ onLogin, onRegister, error, loading }: AuthFormProps)
               type="text"
               value={form.username}
               onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
-              placeholder="your_username"
+              placeholder="username or email"
               autoComplete="username"
               minLength={3}
               maxLength={30}
